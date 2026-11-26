@@ -213,13 +213,13 @@ LEADS = [
 SECONDARY = [
     dict(source_id=1, kicker="HORMUZ · WAR", status="CLAIM", art="tanker",
          title="Iran says two tankers hit by mines",
-         deck="IRGC: ships took an 'unauthorised route'; none named."),
+         deck="IRGC: ships took an 'unauthorised route'; no vessel named."),
     dict(source_id=8, kicker="SAMARA, RUSSIA · WAR", status="CONFIRMED", art="refinery",
          title="Ukrainian drones hit two Rosneft refineries",
-         deck="Syzran, Kuibyshev burn; one killed, 145 drones downed."),
+         deck="Syzran and Kuibyshev ablaze; one killed, 145 drones downed."),
     dict(source_id=46, kicker="CANBERRA · DIPLOMACY", status="OFFICIAL", art="treaty",
          title="Solomon Islands signs security pact with Australia",
-         deck="Pact names Australia primary partner; no foreign bases."),
+         deck="Treaty names Australia primary partner; no foreign bases."),
     dict(source_id=3, kicker="GAZA CITY · WAR", status="REPORTED", art="city",
          title="Israeli strike kills Hamas security chief",
          deck="Abuelouf, his wife and 2 daughters die in Shati camp."),
@@ -228,23 +228,19 @@ SECONDARY = [
          deck="Forces storm Éxito store; one captor killed, two arrested."),
     dict(source_id=31, kicker="CAPE TOWN · JUSTICE", status="CONFIRMED", art="gavel",
          title="Court lifts 'Farmgate' ruling against Ramaphosa",
-         deck="Judges void 2022 panel report enabling impeachment."),
+         deck="Judges void the 2022 panel report that opened the way to impeachment."),
     dict(source_id=22, kicker="BOGOR, INDONESIA · DISASTER", status="REPORTED", art="mine",
          title="26 miners trapped in flooded gold mine",
-         deck="West Java gold mine flooded; 26 workers trapped below."),
+         deck="Flooding traps 26 workers underground at a gold mine in West Java."),
     dict(source_id=28, kicker="ED DAMAZIN, SUDAN · WAR", status="REPORTED", art="drones",
          title="RSF drones kill at least 19 in Sudan",
          deck="Drone strikes hit two cities; 19 civilians dead, 20 hurt."),
-    dict(source_id=2, kicker="SAUDI ARABIA · WAR", status="CLAIM", art="oil_fire",
-         title="Houthis claim Ras Tanura refinery fire",
-         deck="Houthis say their attack caused the blaze."),
-    dict(source_id=4, kicker="IRAN · WAR", status="REPORTED", art="departure",
-         title="US urges citizens to leave at once",
-         deck="Virtual embassy warns of attacks on US interests."),
 ]
 
-# Original IDs in source order. Display numbers are assigned from 14.
+# Original IDs in source order. Display numbers are assigned from 12.
 ALSO = [
+    (2, "SAUDI ARABIA", "Houthis claim Ras Tanura refinery fire"),
+    (4, "IRAN", "US urges citizens to leave at once"),
     (5, "HORMUZ", "Iran sets 7 terms; 'closing daily'"),
     (6, "WASHINGTON", "US weighs killing Iran leaders: report"),
     (7, "YEMEN", "Saudi-led coalition hits Hodeidah port"),
@@ -369,25 +365,20 @@ MAP_EVENTS = [
     (28, 22, "CAPE TOWN", "Justice"),
     (40, 17, "WEST JAVA", "Disaster"),
     (30, 13, "ED DAMAZIN", "War"),
-    (32, 11, "RAS TANURA", "War"),
-    (32, 8, "TEHRAN", "War"),
 ]
-
-# Short leaders separate the three nearby Gulf markers at this map scale.
-MAP_PIN_OFFSETS = {4: (10, 0), 12: (13, 12), 13: (17, -9)}
 
 
 def validate_copy():
     illustrated = [s["source_id"] for s in LEADS + SECONDARY]
     others = [s[0] for s in ALSO]
-    assert illustrated == [43, 20, 21, 1, 8, 46, 3, 38, 31, 22, 28, 2, 4]
-    assert len(LEADS) == 3 and len(SECONDARY) == 10 and len(ALSO) == 37
+    assert illustrated == [43, 20, 21, 1, 8, 46, 3, 38, 31, 22, 28]
+    assert len(illustrated) == 11 and len(ALSO) == 39
     assert others == sorted(set(range(1, 51)) - set(illustrated))
     assert Counter(illustrated + others) == Counter(range(1, 51))
     assert len(REGIONS) == 7 and sum(r[1] for r in REGIONS) == 50
     assert len(FIELD_IDS) == 21
     assert Counter(i for ids in FIELD_IDS.values() for i in ids) == Counter(range(1, 51))
-    assert len(MAP_EVENTS) == len(illustrated) == 13
+    assert len(MAP_EVENTS) == 11
 
 
 # ---------------------------------------------------------------- art
@@ -419,31 +410,74 @@ def drone(draw, cx, cy, size=5, color=NAVY):
 
 
 def draw_ship(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(222, 233, 235))
+    # Quiet morning sky, fading from blue into the newspaper stock tone.
     sea_y = y + h * .69
-    d.rectangle([x, sea_y, x + w, y + h], fill=(49, 103, 120))
-    for j in range(2):
-        for i in range(8):
-            sx = x + 6 + i * 43 + j * 13
-            d.line([(sx, sea_y + 9 + j * 12), (sx + 23, sea_y + 9 + j * 12)],
-                   fill=(139, 181, 190), width=.7)
+    sky_top = (194, 218, 229)
+    sky_bottom = PAPER
+    for row in range(math.ceil(sea_y - y)):
+        t = row / max(1, sea_y - y)
+        color = tuple(round(a + (b - a) * t) for a, b in zip(sky_top, sky_bottom))
+        d.rectangle([x, y + row, x + w, y + row + 1], fill=color)
+
+    # Three small cloud groups sit well above the ship silhouette.
+    cloud = (249, 250, 246)
+    for cx, cy, r in [(22, 16, 4), (29, 13, 5), (36, 16, 4),
+                       (112, 12, 3), (118, 10, 4), (124, 12, 3),
+                       (185, 17, 3), (190, 14, 4), (196, 17, 3)]:
+        d.ellipse([x + cx - r, y + cy - r, x + cx + r, y + cy + r], fill=cloud)
+    for bx, bw, bh, color in [
+            (4, 7, 10, (111, 145, 153)), (13, 10, 15, (124, 154, 159)),
+            (25, 7, 8, (111, 145, 153)), (201, 8, 11, (124, 154, 159)),
+            (211, 11, 16, (111, 145, 153)), (224, 8, 9, (124, 154, 159))]:
+        by = sea_y - bh
+        d.rectangle([x + bx, by, x + bx + bw, sea_y], fill=color)
+        d.rectangle([x + bx + 2, by + 3, x + bx + bw - 2, by + 4], fill=(188, 205, 204))
+
+    # Deeper water toward the frame edge; the hull is layered above it.
+    water_rows = math.ceil(h - (sea_y - y))
+    for row in range(water_rows):
+        t = min(1, row / max(1, water_rows - 1))
+        color = tuple(round(a + (b - a) * t) for a, b in zip((60, 119, 137), (34, 80, 98)))
+        d.rectangle([x, sea_y + row, x + w, sea_y + row + 1], fill=color)
+    # A small, hazy port skyline sits at the waterline behind the ship.
+    for bx, bw, bh, color in [
+            (4, 7, 10, (111, 145, 153)), (13, 10, 15, (124, 154, 159)),
+            (25, 7, 8, (111, 145, 153)), (201, 8, 11, (124, 154, 159)),
+            (211, 11, 16, (111, 145, 153)), (224, 8, 9, (124, 154, 159))]:
+        by = sea_y - bh
+        d.rectangle([x + bx, by, x + bx + bw, sea_y], fill=color)
+        d.rectangle([x + bx + 2, by + 3, x + bx + bw - 2, by + 4], fill=(188, 205, 204))
+    # Fine wake lines trail from the stern and soften into the surrounding sea.
+    for k in range(4):
+        wy = y + 79 + k * 3
+        d.line([(x + 4 + k * 3, wy), (x + 31 + k * 2, wy)],
+               fill=(127, 169, 178), width=.7)
+    d.line([(x + w - 62, y + 83), (x + w - 20, y + 83)], fill=(111, 157, 169), width=.7)
+    d.line([(x + w - 54, y + 87), (x + w - 29, y + 87)], fill=(96, 143, 157), width=.6)
+
     d.polygon([(x + 19, y + 55), (x + w - 27, y + 55),
                (x + w - 47, y + 77), (x + 38, y + 77)], fill=NAVY)
     d.polygon([(x + 27, y + 68), (x + w - 39, y + 68),
                (x + w - 47, y + 77), (x + 38, y + 77)], fill=RED)
     colors = [TEAL, (185, 104, 66), GOLD, (143, 159, 154), (161, 55, 48)]
-    for row in range(3):
-        for col in range(5 - (row == 2)):
-            bx, by = x + 43 + col * 35, y + 43 - row * 12
+    widths = [29, 30, 28, 31, 29]
+    for row in range(4):
+        for col in range(5):
+            bx, by = x + 35 + col * 32, y + 44 - row * 11
+            box_w = widths[(col + row) % len(widths)]
             c = colors[(col + row * 2) % len(colors)]
-            d.rectangle([bx, by, bx + 33, by + 11], fill=c)
+            d.rectangle([bx, by, bx + box_w, by + 10], fill=c)
             for k in range(1, 5):
-                d.line([(bx + k * 6, by + 2), (bx + k * 6, by + 9)], fill=PAPER, width=.35)
+                vx = bx + k * box_w / 5
+                d.line([(vx, by + 2), (vx, by + 8)], fill=(224, 221, 204), width=.35)
+            d.line([(bx + 2, by + 1), (bx + box_w - 2, by + 1)],
+                   fill=(239, 229, 208), width=.4)
     d.rectangle([x + 220, y + 33, x + 241, y + 55], fill=(245, 241, 224))
     d.rectangle([x + 218, y + 29, x + 244, y + 35], fill=PAPER)
     d.rectangle([x + 222, y + 30, x + 240, y + 33], fill=NAVY)
     d.line([(x + 232, y + 14), (x + 232, y + 29)], fill=NAVY, width=1)
     d.line([(x + 224, y + 18), (x + 240, y + 18)], fill=NAVY, width=1)
+    # The tariff stamp stays at its original center, size, wording, and color.
     cx, cy, r = x + w - 42, y + 37, 31
     d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=RED)
     d.ellipse([cx - r + 3, cy - r + 3, cx + r - 3, cy + r - 3], outline=PAPER, width=.6)
@@ -452,24 +486,28 @@ def draw_ship(d, x, y, w, h):
 
 
 def draw_chart(d, x, y, w, h):
-    """The v1 falling line, redrawn proportionally with a chip motif."""
+    """Falling KOSPI line with a restrained grid and market markers."""
     d.rectangle([x, y, x + w, y + h], fill=(252, 250, 245))
     for k in range(1, 5):
         gy = y + k * h / 5
-        d.line([(x + 8, gy), (x + w - 8, gy)], fill=(225, 224, 219), width=.6)
+        d.line([(x + 8, gy), (x + w - 8, gy)], fill=(222, 222, 217), width=.65)
     for k in range(1, 8):
         gx = x + k * w / 8
-        d.line([(gx, y + 7), (gx, y + h - 7)], fill=(231, 228, 222), width=.6)
+        d.line([(gx, y + 7), (gx, y + h - 7)], fill=(237, 234, 228), width=.5)
     pts = [(x + w * a, y + h * b) for a, b in
            [(.24, .17), (.38, .28), (.49, .25), (.62, .48),
             (.73, .44), (.85, .70), (.95, .81)]]
     d.polygon(pts + [(x + w * .95, y + h - 7), (x + w * .24, y + h - 7)],
-              fill=(247, 221, 212))
+              fill=(250, 234, 227))
     d.line(pts, fill=RED, width=3.6)
     d.polygon([(x + w * .95, y + h * .81), (x + w * .90, y + h * .79),
                (x + w * .94, y + h * .67)], fill=RED)
-    for px, py in pts[:-1]:
-        d.ellipse([px - 2, py - 2, px + 2, py + 2], fill=RED)
+    # Four slightly emphasized observations sit on the falling market trace.
+    for idx, (px, py) in enumerate(pts):
+        radius = 3.0 if idx in (1, 3, 4, 5) else 2.1
+        d.ellipse([px - radius, py - radius, px + radius, py + radius],
+                  fill=(252, 250, 245), outline=RED, width=1.1)
+        d.ellipse([px - .8, py - .8, px + .8, py + .8], fill=RED)
     cx, cy = x + 49, y + 27
     for k in range(4):
         p = -10 + k * 6
@@ -477,6 +515,7 @@ def draw_chart(d, x, y, w, h):
         d.line([(cx + p, cy - 21), (cx + p, cy + 21)], fill=NAVY, width=2)
     d.rounded_rectangle([cx - 15, cy - 15, cx + 15, cy + 15], radius=2, fill=NAVY)
     centered(d, "AI", cy - 7, F_SANS_BOLD(13), PAPER, cx - 15, 30)
+    d.text((x + 8, y + 49), "KOSPI", font=F_SANS_BOLD(6.8), fill=(91, 100, 101))
     d.rectangle([x + 10, y + h - 29, x + 119, y + h - 8], fill=RED)
     d.text((x + 16, y + h - 26), "KOSPI -6.2%", font=F_SANS_BOLD(14), fill=PAPER)
 
@@ -485,13 +524,30 @@ def draw_station(d, x, y, w, h):
     d.rectangle([x, y, x + w, y + h], fill=NAVY)
     for a, b in [(9, 15), (23, 42), (47, 10), (75, 19), (100, 8), (122, 27),
                  (142, 7), (164, 15), (185, 8), (207, 20), (235, 9), (280, 39),
-                 (298, 16), (19, 68), (90, 64), (204, 65), (268, 67)]:
+                 (298, 16), (19, 68), (90, 64), (204, 65), (268, 67),
+                 (34, 29), (81, 11), (105, 70), (178, 13), (193, 30), (259, 31)]:
         d.ellipse([x + a, y + b, x + a + 1, y + b + 1], fill=(215, 228, 225))
-    d.ellipse([x - 45, y + h - 21, x + w + 45, y + h + 125],
-              fill=(39, 100, 144), outline=(98, 188, 211), width=3)
+    # Earth limb: draw the ellipse, then a restrained blue-to-cyan surface fade.
+    earth_box = [x - 45, y + h - 21, x + w + 45, y + h + 125]
+    d.ellipse(earth_box, fill=(39, 100, 144))
+    ecx, ecy, erx, ery = x + w / 2, y + h + 52, w / 2 + 45, 73
+    surface_top = y + h - 21
+    for yy in range(math.ceil(surface_top), math.ceil(y + h + 1)):
+        py = yy + .5
+        dy = (py - ecy) / ery
+        if abs(dy) >= 1:
+            continue
+        half = erx * math.sqrt(1 - dy * dy)
+        left, right = max(x - 45, ecx - half), min(x + w + 45, ecx + half)
+        t = min(1, max(0, (py - surface_top) / 21))
+        color = tuple(round(a + (b - a) * t)
+                      for a, b in zip((39, 100, 144), (72, 146, 180)))
+        d.line([(left, py), (right, py)], fill=color, width=.8)
+    d.ellipse(earth_box, fill=None, outline=(98, 188, 211), width=3)
     d.polygon([(x + 46, y + h - 9), (x + 79, y + h - 16),
                (x + 104, y + h - 9), (x + 131, y + h - 6),
                (x + 116, y + h), (x + 69, y + h)], fill=(67, 126, 129))
+    # Solar arrays and the main Tiangong modules.
     d.line([(x + 57, y + 43), (x + 253, y + 43)], fill=(204, 213, 212), width=3)
     for sx in (43, 221):
         for sy in (20, 47):
@@ -510,12 +566,28 @@ def draw_station(d, x, y, w, h):
         d.line([(x + sx, y + 38), (x + sx, y + 49)], fill=(131, 161, 174), width=1)
     d.ellipse([x + 151, y + 38, x + 162, y + 49], fill=TEAL)
     d.rectangle([x + 148, y + 64, x + 165, y + 70], fill=(192, 197, 188))
+    # A second habitation module and a short docking arm add depth to the truss.
+    d.line([(x + 140, y + 50), (x + 140, y + 55)], fill=(193, 204, 204), width=2)
+    d.rounded_rectangle([x + 123, y + 55, x + 183, y + 66], radius=4,
+                        fill=(222, 225, 219), outline=(131, 161, 174), width=.7)
+    for sx in (136, 152, 168):
+        d.line([(x + sx, y + 57), (x + sx, y + 64)], fill=(131, 161, 174), width=.8)
+    # Shenzhou-24 is shown approaching the left-side docking port.
+    d.line([(x + 91, y + 43), (x + 100, y + 43)], fill=(211, 217, 211), width=2)
+    d.ellipse([x + 96, y + 40, x + 102, y + 46], fill=(192, 197, 188),
+              outline=(131, 161, 174), width=.6)
+    d.polygon([(x + 76, y + 40), (x + 80, y + 37), (x + 86, y + 38),
+               (x + 92, y + 43), (x + 86, y + 48), (x + 80, y + 49),
+               (x + 76, y + 46)], fill=(238, 235, 222))
+    d.line([(x + 78, y + 46), (x + 87, y + 46)], fill=RED, width=1.5)
+    d.ellipse([x + 81, y + 40, x + 84, y + 43], fill=(68, 126, 157))
     d.polygon([(x + 287, y + 32), (x + 281, y + 43),
                (x + 281, y + 59), (x + 293, y + 59), (x + 293, y + 43)], fill=PAPER)
     d.polygon([(x + 281, y + 51), (x + 277, y + 64), (x + 284, y + 59)], fill=RED)
     d.polygon([(x + 293, y + 51), (x + 297, y + 64), (x + 290, y + 59)], fill=RED)
     flame(d, x + 287, y + 73, 7, 14)
     d.ellipse([x + 284, y + 43, x + 290, y + 49], fill=(64, 117, 150))
+    # Preserve the original Chinese and Pakistani flags and rocket.
     d.rectangle([x + 246, y + 6, x + 264, y + 17], fill=RED)
     star(d, x + 251, y + 10, 2.3, (255, 217, 98))
     d.rectangle([x + 271, y + 6, x + 290, y + 17], fill=(25, 106, 71))
@@ -662,61 +734,10 @@ def draw_drones(d, x, y, w, h):
             d.ellipse([px, py, px + 1, py + 1], fill=RED)
 
 
-def draw_oil_fire(d, x, y, w, h):
-    """Ras Tanura: storage tanks, refinery columns and an attributed fire."""
-    d.rectangle([x, y, x + w, y + h], fill=(223, 231, 231))
-    ground = y + h - 5
-    d.rectangle([x, ground, x + w, y + h], fill=(129, 147, 144))
-    for fraction in (.20, .42):
-        tx, tw = x + w * fraction, w * .17
-        d.rectangle([tx, ground - 17, tx + tw, ground],
-                    fill=(211, 216, 207), outline=TEAL, width=.6)
-        d.ellipse([tx, ground - 21, tx + tw, ground - 13],
-                  fill=PAPER, outline=TEAL, width=.6)
-    d.line([(x + w * .36, ground - 7), (x + w * .81, ground - 7),
-            (x + w * .81, ground - 17)], fill=TEAL, width=2)
-    tx = x + w * .75
-    d.rectangle([tx, ground - 30, tx + w * .06, ground], fill=(91, 120, 124))
-    for k in range(3):
-        d.line([(tx - 3, ground - 7 - k * 8),
-                (tx + w * .06 + 3, ground - 7 - k * 8)], fill=TEAL, width=1)
-    d.rectangle([x + w * .86, ground - 13, x + w * .95, ground],
-                fill=(158, 170, 159))
-    flame(d, x + w * .50, ground - 17, 20, 21)
-
-
-def draw_departure(d, x, y, w, h):
-    """A terminal, control tower and departing plane; no invented flight."""
-    d.rectangle([x, y, x + w, y + h], fill=(222, 233, 235))
-    runway = y + h - 9
-    d.rectangle([x, runway, x + w, y + h], fill=(91, 120, 124))
-    for k in range(5):
-        rx = x + w * (.09 + k * .19)
-        d.line([(rx, runway + 5), (rx + w * .09, runway + 5)], fill=PAPER, width=.8)
-    d.rectangle([x + w * .16, y + 26, x + w * .65, runway], fill=(211, 216, 207))
-    d.line([(x + w * .14, y + 26), (x + w * .67, y + 26)], fill=TEAL, width=2)
-    for k in range(6):
-        wx = x + w * (.19 + k * .073)
-        d.rectangle([wx, y + 29, wx + w * .048, runway - 2], fill=TEAL)
-    tx = x + w * .77
-    d.rectangle([tx - 4, y + 15, tx + 4, runway], fill=(158, 170, 159))
-    d.polygon([(tx - 12, y + 10), (tx + 12, y + 10),
-               (tx + 9, y + 18), (tx - 9, y + 18)], fill=TEAL)
-    d.line([(tx - 13, y + 9), (tx + 13, y + 9)], fill=NAVY, width=1.5)
-    cx, cy = x + w * .44, y + 10
-    d.polygon([(cx - 28, cy + 7), (cx - 23, cy - 3), (cx - 19, cy - 4),
-               (cx - 18, cy + 4), (cx + 1, cy - 1), (cx + 2, cy - 9),
-               (cx + 7, cy - 10), (cx + 10, cy - 3), (cx + 29, cy - 7),
-               (cx + 34, cy - 4), (cx + 32, cy - 2), (cx + 11, cy + 4),
-               (cx + 5, cy + 14), (cx, cy + 16), (cx + 1, cy + 6),
-               (cx - 18, cy + 11)], fill=NAVY)
-
-
 ART = {"ship": draw_ship, "chart": draw_chart, "station": draw_station,
        "tanker": draw_tanker, "refinery": draw_refinery, "treaty": draw_treaty,
        "city": draw_city, "store": draw_store, "gavel": draw_gavel,
-       "mine": draw_mine, "drones": draw_drones,
-       "oil_fire": draw_oil_fire, "departure": draw_departure}
+       "mine": draw_mine, "drones": draw_drones}
 
 
 # ---------------------------------------------------------------- page
@@ -731,16 +752,9 @@ def number_badge(d, number, cx, cy, radius=10.5, size=12):
 
 
 def paste_art(img, d, name, x, y, width, height, number, mini=False):
-    # Existing mini scenes contain fixed coordinates for the v2 card width.
-    # Resize the complete scene so the narrower grid never clips its right edge.
-    art_width = (CONTENT_W - 14 * 3) / 4 if mini else width
-    panel = Image.new("RGB", (round(art_width * SCALE), round(height * SCALE)), PANEL)
+    panel = Image.new("RGB", (round(width * SCALE), round(height * SCALE)), PANEL)
     pd = Canvas(panel)
-    ART[name](pd, 0, 0, art_width, height)
-    if mini:
-        panel = panel.resize((round(width * SCALE), round(height * SCALE)),
-                             Image.Resampling.LANCZOS)
-        pd = Canvas(panel)
+    ART[name](pd, 0, 0, width, height)
     number_badge(pd, number, 13 if mini else 17, 12 if mini else 17,
                  radius=8 if mini else 10.5, size=9 if mini else 12)
     img.paste(panel, (round(x * SCALE), round(y * SCALE)))
@@ -846,25 +860,24 @@ def draw_page():
     y += 200
     hline(d, y, LIGHT_LINE, .65)
 
-    # Ten illustrated secondary stories, read across then down.
-    section_heading(d, "MORE FROM WEDNESDAY · STORIES 4–13", y + 8)
+    # Eight genuinely illustrated secondary stories, read across then down.
+    section_heading(d, "MORE FROM WEDNESDAY · STORIES 4–11", y + 8)
     grid_top = y + 26
     mini_gap = 14
-    mini_w = (CONTENT_W - mini_gap * 4) / 5
+    mini_w = (CONTENT_W - mini_gap * 3) / 4
     row_h = 101
     for i, story in enumerate(SECONDARY):
-        x = MARGIN + (i % 5) * (mini_w + mini_gap)
-        sy = grid_top + (i // 5) * row_h
+        x = MARGIN + (i % 4) * (mini_w + mini_gap)
+        sy = grid_top + (i // 4) * row_h
         start = len(d.text_boxes)
         paste_art(img, d, story["art"], x, sy, mini_w, 46, i + 4, mini=True)
         metadata(d, story, x, sy + 49, mini_w, mini=True)
         tf = fit_lines(d, story["title"], "NotoSans-Bold.ttf", 12.7, mini_w - 1, 2, 10.7)
         draw_wrapped(d, x, sy + 60, story["title"], tf, INK, mini_w - 1, 13.5)
-        df = F_COND(8.3)
-        assert d.textlength(story["deck"], font=df) <= mini_w, story["deck"]
+        df = fit_font(d, story["deck"], "NotoSans-Condensed.ttf", 8.3, mini_w)
         d.text((x, sy + 89), story["deck"], font=df, fill=(62, 62, 57))
         assert_column_text(d, start, x, sy, x + mini_w, sy + 99)
-        if i % 5:
+        if i % 4:
             vx = x - mini_gap / 2
             d.line([(vx, sy), (vx, sy + 97)], fill=LIGHT_LINE, width=.55)
     y = grid_top + 2 * row_h
@@ -882,39 +895,25 @@ def draw_page():
             for c in range(c0, c1 + 1):
                 cx, cy = MARGIN + (c + .5) * cw, map_top + (r + .5) * ch
                 d.ellipse([cx - 1.2, cy - 1.2, cx + 1.2, cy + 1.2], fill=LAND)
-    pins = []
     for i, (col, row, _, _) in enumerate(MAP_EVENTS, 1):
-        ax, ay = MARGIN + (col + .5) * cw, map_top + (row + .5) * ch
-        dx, dy = MAP_PIN_OFFSETS.get(i, (0, 0))
-        cx, cy = ax + dx, ay + dy
-        assert MARGIN + 6.1 <= cx <= MARGIN + map_w - 6.1
-        assert map_top + 6.1 <= cy <= map_top + map_h - 6.1
-        for px, py in pins:
-            assert math.hypot(cx - px, cy - py) >= 14, ("map pin collision", i)
-        if dx or dy:
-            d.line([(ax, ay), (cx, cy)], fill=RED, width=.7)
-        pins.append((cx, cy))
-    for i, (cx, cy) in enumerate(pins, 1):
+        cx, cy = MARGIN + (col + .5) * cw, map_top + (row + .5) * ch
         number_badge(d, i, cx, cy, radius=6.1, size=7.5)
     d.rectangle([MARGIN, map_top, MARGIN + map_w, map_top + map_h], outline=PANEL_LINE, width=.6)
     d.text((MARGIN, map_top + map_h + 5), "Pins = story numbers", font=F_SANS(8), fill=GRAY)
     key_x = MARGIN + map_w + 24
     key_col_w = (W - MARGIN - key_x) / 3
     for i, (_, _, place, field) in enumerate(MAP_EVENTS):
-        # Five entries in the first column, four in each remaining column.
-        col, row = (0, i) if i < 5 else (1 + (i - 5) // 4, (i - 5) % 4)
-        x, ky = key_x + col * key_col_w, map_top + 5 + row * 17
-        start = len(d.text_boxes)
+        col, row = divmod(i, 4)
+        x, ky = key_x + col * key_col_w, map_top + 7 + row * 21
         number_badge(d, i + 1, x + 7, ky + 5, radius=6.5, size=7)
         d.text((x + 20, ky), place, font=F_SANS_BOLD(9), fill=INK)
         pw = d.textlength(place, font=F_SANS_BOLD(9))
         d.text((x + 26 + pw, ky + .5), field, font=F_SANS(8.4), fill=GRAY)
-        assert_column_text(d, start, x, ky - 2, x + key_col_w, ky + 14)
     y = map_top + map_h + 20
     hline(d, y, LIGHT_LINE, .65)
 
-    # 14–50 follow original source order, not the old source IDs. Three
-    # newspaper columns, up to thirteen one-line briefs, with place prefixes.
+    # 12–50 follow original source order, not the old source IDs. Three
+    # newspaper columns, thirteen one-line briefs each, with place prefixes.
     section_heading(d, "ALSO ON WEDNESDAY 25 NOVEMBER", y + 8)
     list_top = y + 26
     list_gap = 16
@@ -922,7 +921,7 @@ def draw_page():
     for i, (_, place, text) in enumerate(ALSO):
         col, row = divmod(i, 13)
         x, ly = MARGIN + col * (list_w + list_gap), list_top + row * 10.5
-        prefix = f"{i + 14}. {place} — "
+        prefix = f"{i + 12}. {place} — "
         # Both runs use the same fitted face size; the location is bold.
         fnt = fit_font(d, prefix + text, "NotoSans-Condensed.ttf", 9.6, list_w - 3)
         for step in range(fnt.size, 17, -1):
@@ -968,8 +967,7 @@ def draw_page():
             overlap_h = min(a[3], b[3]) - max(a[1], b[1])
             assert overlap_w <= .4 or overlap_h <= .4, ("text overlap", at, bt, a, b)
     assert y <= H - 4, f"layout overflow: bottom y={y}"
-    print(f"layout checked: 3 leads + 10 minis + 37 briefs = 50 stories; "
-          f"21 fields, 13 numbered pins; bottom y={y}")
+    print(f"layout checked: 50 stories, 21 fields, 11 numbered pins; bottom y={y}")
     return img.resize((W, H), Image.Resampling.LANCZOS)
 
 
