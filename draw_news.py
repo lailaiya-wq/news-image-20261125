@@ -402,31 +402,44 @@ def flame(draw, cx, base_y, w, h):
 
 
 def drone(draw, cx, cy, size=5, color=NAVY):
-    for a, b in [((-size, -size), (size, size)), ((-size, size), (size, -size))]:
-        draw.line([(cx + a[0], cy + a[1]), (cx + b[0], cy + b[1])], fill=color, width=1.7)
-    draw.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=color)
-    for dx, dy in [(-size, -size), (-size, size), (size, -size), (size, size)]:
-        draw.ellipse([cx + dx - 2.5, cy + dy - 1, cx + dx + 2.5, cy + dy + 1], fill=color)
+    """Four distinct rotor discs, arms and a small central fuselage."""
+    rotor_r = size * .56
+    for dx, dy in [(-size, -size * .72), (-size, size * .72),
+                   (size, -size * .72), (size, size * .72)]:
+        draw.line([(cx + dx * .25, cy + dy * .25), (cx + dx, cy + dy)],
+                  fill=color, width=1.1)
+        draw.ellipse([cx + dx - rotor_r, cy + dy - rotor_r * .65,
+                      cx + dx + rotor_r, cy + dy + rotor_r * .65],
+                     outline=color, width=.8)
+        draw.line([(cx + dx - rotor_r * .72, cy + dy),
+                   (cx + dx + rotor_r * .72, cy + dy)], fill=color, width=.55)
+        draw.ellipse([cx + dx - .65, cy + dy - .65,
+                      cx + dx + .65, cy + dy + .65], fill=color)
+    draw.rounded_rectangle([cx - size * .36, cy - size * .54,
+                            cx + size * .36, cy + size * .54],
+                           radius=1, fill=color)
 
 
 def draw_ship(d, x, y, w, h):
     d.rectangle([x, y, x + w, y + h], fill=(222, 233, 235))
     sea_y = y + h * .69
     d.rectangle([x, sea_y, x + w, y + h], fill=(49, 103, 120))
-    for j in range(2):
-        for i in range(8):
-            sx = x + 6 + i * 43 + j * 13
-            d.line([(sx, sea_y + 9 + j * 12), (sx + 23, sea_y + 9 + j * 12)],
-                   fill=(139, 181, 190), width=.7)
+    # Three low, continuous wave lines sit beneath the hull.
+    for left, right, wy, phase in ((32, 263, 81, 0), (49, 246, 85, .8),
+                                   (72, 221, 89, 1.6)):
+        points = [(x + sx, y + wy + .9 * math.sin((sx - left) / 14 + phase))
+                  for sx in range(left, right + 1, 2)]
+        d.line(points, fill=(139, 181, 190), width=.8)
     d.polygon([(x + 19, y + 55), (x + w - 27, y + 55),
                (x + w - 47, y + 77), (x + 38, y + 77)], fill=NAVY)
     d.polygon([(x + 27, y + 68), (x + w - 39, y + 68),
                (x + w - 47, y + 77), (x + 38, y + 77)], fill=RED)
-    colors = [TEAL, (185, 104, 66), GOLD, (143, 159, 154), (161, 55, 48)]
-    for row in range(3):
-        for col in range(5 - (row == 2)):
+    colors = [TEAL, (181, 98, 62), GOLD, (135, 155, 151),
+              (161, 55, 48), (81, 117, 139)]
+    for col, height in enumerate((2, 3, 3, 2, 3)):
+        for row in range(height):
             bx, by = x + 43 + col * 35, y + 43 - row * 12
-            c = colors[(col + row * 2) % len(colors)]
+            c = colors[(col * 2 + row) % len(colors)]
             d.rectangle([bx, by, bx + 33, by + 11], fill=c)
             for k in range(1, 5):
                 d.line([(bx + k * 6, by + 2), (bx + k * 6, by + 9)], fill=PAPER, width=.35)
@@ -476,10 +489,17 @@ def draw_station(d, x, y, w, h):
     d.rectangle([x, y, x + w, y + h], fill=NAVY)
     for a, b in [(9, 15), (23, 42), (47, 10), (75, 19), (100, 8), (122, 27),
                  (142, 7), (164, 15), (185, 8), (207, 20), (235, 9), (280, 39),
-                 (298, 16), (19, 68), (90, 64), (204, 65), (268, 67)]:
+                 (298, 16), (19, 68), (90, 64), (204, 65), (268, 67),
+                 (34, 9), (113, 12), (184, 22), (215, 61), (302, 30), (8, 51)]:
         d.ellipse([x + a, y + b, x + a + 1, y + b + 1], fill=(215, 228, 225))
-    d.ellipse([x - 45, y + h - 21, x + w + 45, y + h + 125],
-              fill=(39, 100, 144), outline=(98, 188, 211), width=3)
+    # Concentric colour bands at render resolution give a soft atmospheric rim.
+    for step in range(20 * SCALE + 1):
+        inset = step / SCALE
+        blend = inset / 20
+        color = tuple(round(a + (b - a) * blend)
+                      for a, b in zip((80, 156, 183), (35, 85, 128)))
+        d.ellipse([x - 45 + inset, y + h - 21 + inset,
+                   x + w + 45 - inset, y + h + 125 - inset], fill=color)
     d.polygon([(x + 46, y + h - 9), (x + 79, y + h - 16),
                (x + 104, y + h - 9), (x + 131, y + h - 6),
                (x + 116, y + h), (x + 69, y + h)], fill=(67, 126, 129))
@@ -517,7 +537,7 @@ def draw_station(d, x, y, w, h):
 
 
 def draw_tanker(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(219, 231, 235))
+    d.rectangle([x, y, x + w, y + h], fill=(211, 223, 227))
     sy = y + h * .73
     d.rectangle([x, sy, x + w, y + h], fill=(50, 101, 119))
     d.polygon([(x + 34, sy - 9), (x + w - 29, sy - 9),
@@ -527,33 +547,48 @@ def draw_tanker(d, x, y, w, h):
     d.rectangle([x + w - 63, sy - 22, x + w - 42, sy - 18], fill=TEAL)
     for sx in (77, 117):
         d.rectangle([x + sx - 12, sy - 14, x + sx + 14, sy - 9], fill=(143, 158, 160))
-        flame(d, x + sx, sy - 13, 17, 20)
-        d.ellipse([x + sx - 5, y + 3, x + sx + 10, y + 15], fill=(104, 111, 112))
+    # A connected column curls right from the flame base on the deck.
+    deck_y = sy - 9
+    smoke = (98, 105, 106)
+    d.polygon([(x + 94, deck_y), (x + 95, deck_y - 11),
+               (x + 102, y + 7), (x + 113, y + 3), (x + 128, y + 3),
+               (x + 133, y + 8), (x + 122, y + 12), (x + 112, y + 16),
+               (x + 110, deck_y)], fill=smoke)
+    d.ellipse([x + 100, y + 3, x + 120, y + 16], fill=smoke)
+    d.ellipse([x + 113, y + 1, x + 137, y + 11], fill=smoke)
+    d.line([(x + 106, deck_y - 7), (x + 109, y + 12),
+            (x + 117, y + 8), (x + 126, y + 7)], fill=(127, 132, 131), width=2)
+    flame(d, x + 102, deck_y, 25, 17)
     for i in range(5):
         sx = x + 12 + i * 48
         d.line([(sx, y + h - 4), (sx + 22, y + h - 4)], fill=(151, 192, 202), width=.7)
 
 
 def draw_refinery(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(223, 231, 231))
+    d.rectangle([x, y, x + w, y + h], fill=(215, 223, 223))
     ground = y + h - 5
     d.rectangle([x, ground, x + w, y + h], fill=(129, 147, 144))
     for tx in (x + 50, x + 97):
         d.rectangle([tx, ground - 17, tx + 35, ground], fill=(211, 216, 207), outline=TEAL, width=.6)
         d.ellipse([tx, ground - 21, tx + 35, ground - 13], fill=PAPER, outline=TEAL, width=.6)
-    for tx, height in ((x + 151, 25), (x + 181, 28)):
+    for tx, height, flame_h in ((x + 151, 25, 13), (x + 181, 28, 11)):
         d.rectangle([tx, ground - height, tx + 13, ground], fill=(91, 120, 124))
         for k in range(3):
             d.line([(tx - 3, ground - 5 - k * 8), (tx + 16, ground - 5 - k * 8)], fill=TEAL, width=1)
-        flame(d, tx + 6, ground - height + 1, 13, 10)
-    flame(d, x + 68, ground - 18, 19, 20)
+        d.rectangle([tx + 4.5, ground - height - 1, tx + 7.5, ground - height + 3], fill=NAVY)
+        flame(d, tx + 6, ground - height, 6, flame_h)
+    # Short necks on both tank roofs make the tall flame tongues read as flares.
+    for cx, flame_h in ((x + 63, 14), (x + 110, 14)):
+        d.rectangle([cx - 1.5, ground - 24, cx + 1.5, ground - 18], fill=(69, 94, 97))
+        d.line([(cx - 2.5, ground - 24), (cx + 2.5, ground - 24)], fill=NAVY, width=.8)
+        flame(d, cx, ground - 24, 6, flame_h)
     drone(d, x + 121, y + 10, 4)
-    for k in range(4):
+    for k in range(3):
         d.ellipse([x + 92 + k * 6, y + 3 + k * 2, x + 93 + k * 6, y + 4 + k * 2], fill=RED)
 
 
 def draw_treaty(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(221, 232, 227))
+    d.rectangle([x, y, x + w, y + h], fill=(213, 224, 219))
     cx = x + w / 2
     d.rectangle([cx - 31, y + 4, cx + 31, y + h - 3], fill=PAPER, outline=(166, 177, 163), width=.7)
     d.polygon([(cx + 22, y + 4), (cx + 31, y + 13), (cx + 22, y + 13)], fill=(212, 217, 202))
@@ -579,7 +614,7 @@ def draw_treaty(d, x, y, w, h):
 
 
 def draw_city(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(231, 219, 197))
+    d.rectangle([x, y, x + w, y + h], fill=(223, 211, 189))
     for i, (xx, bw, bh) in enumerate([(22, 38, 24), (63, 37, 34), (103, 30, 21),
                                       (137, 40, 30), (181, 34, 25)]):
         bx, by = x + xx, y + h - bh
@@ -593,7 +628,7 @@ def draw_city(d, x, y, w, h):
 
 
 def draw_store(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(225, 233, 223))
+    d.rectangle([x, y, x + w, y + h], fill=(217, 225, 215))
     bx, by = x + 44, y + 8
     d.rectangle([bx, by, x + w - 30, y + h], fill=(214, 193, 153))
     d.rectangle([bx + 5, by + 3, x + w - 35, by + 13], fill=TEAL)
@@ -611,7 +646,7 @@ def draw_store(d, x, y, w, h):
 
 
 def draw_gavel(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(232, 221, 200))
+    d.rectangle([x, y, x + w, y + h], fill=(224, 213, 192))
     brown, light = (105, 71, 48), (165, 117, 73)
     d.line([(x + 83, y + 16), (x + 125, y + 37)], fill=brown, width=7)
     d.polygon([(x + 65, y + 5), (x + 74, y + 1), (x + 96, y + 24),
@@ -624,33 +659,49 @@ def draw_gavel(d, x, y, w, h):
 
 
 def draw_mine(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(149, 110, 76))
-    d.rectangle([x, y, x + w, y + 5], fill=(202, 176, 130))
+    d.rectangle([x, y, x + w, y + h], fill=(141, 102, 68))
+    surface = y + 17
+    d.rectangle([x, y, x + w, surface], fill=(194, 168, 122))
+    d.line([(x, surface), (x + w, surface)], fill=(112, 90, 61), width=1)
     sx = x + w * .50
-    d.rectangle([sx - 12, y + 3, sx + 12, y + h], fill=(60, 56, 49))
+    d.rectangle([sx - 12, surface, sx + 12, y + h], fill=(60, 56, 49))
     d.rectangle([x + 40, y + 29, x + w - 37, y + 39], fill=(60, 56, 49))
-    d.line([(sx - 8, y + 2), (sx - 8, y + 35)], fill=(200, 184, 146), width=.7)
-    d.line([(sx + 8, y + 2), (sx + 8, y + 35)], fill=(200, 184, 146), width=.7)
-    d.rectangle([sx - 7, y + 14, sx + 7, y + 28], outline=GOLD, width=1.4)
-    d.line([(sx, y + 14), (sx, y + 28)], fill=GOLD, width=.7)
+    # Splayed legs and cross braces support a sheave above the shaft mouth.
+    steel = (65, 60, 48)
+    d.line([(sx - 17, surface), (sx - 8, y + 4),
+            (sx + 8, y + 4), (sx + 17, surface)], fill=steel, width=1.7)
+    d.line([(sx - 12, y + 10), (sx + 12, y + 10)], fill=steel, width=1)
+    d.line([(sx - 15, surface - 1), (sx + 8, y + 5)], fill=steel, width=.9)
+    d.line([(sx + 15, surface - 1), (sx - 8, y + 5)], fill=steel, width=.9)
+    d.ellipse([sx - 3.2, y + 1, sx + 3.2, y + 7.4],
+              fill=(194, 168, 122), outline=steel, width=1)
+    d.line([(sx - 2.4, y + 4.2), (sx + 2.4, y + 4.2)], fill=steel, width=.6)
+    d.line([(sx, y + 1.8), (sx, y + 18.5)], fill=steel, width=.7)
+    d.line([(sx - 16, surface), (sx + 16, surface)], fill=steel, width=2)
+    for dx in (-8, 8):
+        d.line([(sx + dx, surface + 1), (sx + dx, y + 35)],
+               fill=(200, 184, 146), width=.7)
+    d.rectangle([sx - 6, y + 18.5, sx + 6, y + 29], outline=GOLD, width=1.2)
+    d.line([(sx, y + 19), (sx, y + 28)], fill=GOLD, width=.7)
+    d.line([(sx - 7, y + 29), (sx + 7, y + 29)], fill=GOLD, width=1.4)
     d.rectangle([x + 40, y + 35, x + w - 37, y + 39], fill=(65, 126, 148))
     d.rectangle([sx - 12, y + 35, sx + 12, y + h], fill=(65, 126, 148))
     d.line([(x + 40, y + 35), (x + w - 37, y + 35)], fill=(137, 192, 197), width=1)
-    for rx, ry in ((25, 17), (62, 21), (158, 17), (185, 27), (210, 12)):
+    for rx, ry in ((25, 26), (62, 23), (158, 24), (185, 29), (210, 23)):
         d.polygon([(x + rx, y + ry), (x + rx + 6, y + ry - 4),
                    (x + rx + 10, y + ry + 2), (x + rx + 3, y + ry + 5)], fill=(193, 155, 108))
 
 
 def draw_drones(d, x, y, w, h):
-    d.rectangle([x, y, x + w, y + h], fill=(230, 218, 191))
+    d.rectangle([x, y, x + w, y + h], fill=(222, 210, 183))
     for bx, bw, bh in [(22, 34, 12), (60, 39, 15), (103, 31, 10), (138, 44, 17), (187, 29, 12)]:
         d.rectangle([x + bx, y + h - bh, x + bx + bw, y + h], fill=(160, 136, 102))
         d.line([(x + bx - 1, y + h - bh), (x + bx + bw + 1, y + h - bh)], fill=(127, 111, 89), width=1.4)
-    for cx, cy in [(66, 13), (131, 9), (191, 17)]:
-        drone(d, x + cx, y + cy, 4)
+    for cx, cy, size in [(66, 13, 5.3), (131, 9, 4.6), (191, 17, 5.3)]:
+        drone(d, x + cx, y + cy, size, color=(65, 54, 42))
         for k in range(4):
             px, py = x + cx - 25 + k * 5, y + cy - 2 + k * 2
-            d.ellipse([px, py, px + 1, py + 1], fill=RED)
+            d.ellipse([px, py, px + 1, py + 1], fill=(151, 119, 80))
 
 
 ART = {"ship": draw_ship, "chart": draw_chart, "station": draw_station,
